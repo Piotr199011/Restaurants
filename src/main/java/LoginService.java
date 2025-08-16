@@ -7,7 +7,7 @@ public class LoginService {
     private static final String FILE_PATH = "logins.xlsx";
 
     private LoginService(ExcelReader excelReader) {
-        this.excelReader = new ExcelReader();
+        this.excelReader = excelReader;
     }
 
     private static LoginService instance;
@@ -20,30 +20,37 @@ public class LoginService {
     }
 
     public User authenticate(String role, String username, String password) {
-        Map<String, Integer> roleMap = new HashMap<>();
-        roleMap.put("Waiter", 0);
-        roleMap.put("Cook", 1);
-        roleMap.put("Manager", 2);
+
+        Map<String, Integer> roleMap = Map.of(
+                "Waiter", 0,
+                "Cook", 1,
+                "Manager", 2
+        );
+
         if (!roleMap.containsKey(role)) {
-            System.out.println("Nieznana rola: "+role);
+            System.out.println("Nieznana rola: " + role);
             return null;
         }
-        Map<String, String> logins = this.excelReader.readLoginsFromSheet(
-                FILE_PATH, roleMap.get(role));
 
-        if (logins.containsKey(username) && logins.get(username).equals(password)) {
-            switch (role) {
-                case "Waiter":
-                    return new Waiter(username);
-                case "Cook":
-                    return new Cook(username);
-                case "Manager":
-                    return new Manager(username);
-            }
-        } else return null;
+        Map<String, String> logins = excelReader.readLoginsFromSheet(FILE_PATH, roleMap.get(role));
 
+        if (!logins.containsKey(username)) {
+            System.out.println("Nie znaleziono użytkownika: " + username);
+            return null;
+        }
 
-        return null;
+        if (!logins.get(username).equals(password)) {
+            System.out.println("Błędne hasło dla użytkownika: " + username);
+            return null;
+        }
+
+        switch (role) {
+            case "Waiter": return new Waiter(username);
+            case "Cook": return new Cook(username);
+            case "Manager": return new Manager(username);
+            default: return null; // tu i tak nie trafimy
+        }
     }
+
 
 }

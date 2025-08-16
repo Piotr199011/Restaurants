@@ -56,6 +56,8 @@ public class Dish {
 
     @Override
     public String toString() {
-        return id + ": " + "Name of the dish: " + nameDish + " components: " + compositionOfDish + " " + priceDish + "pln";
+        return id + ": " + "Name of the dish: " + nameDish +
+                " components: " + compositionOfDish + " " + priceDish + "pln" +
+                " [" + (isReady ? "Gotowe" : "W trakcie") + "]";
     }
 }

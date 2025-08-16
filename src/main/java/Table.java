@@ -6,7 +6,7 @@ public class Table {
 
     public Table(int idTable, boolean isOccupied) {
         this.idTable = idTable;
-        this.isOccupied = false;
+        this.isOccupied = isOccupied;
     }
 
     public int getIdTable() {

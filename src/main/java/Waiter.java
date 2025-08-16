@@ -35,8 +35,8 @@ public class Waiter extends User {
     }
 
     public boolean servedDish(Dish dish) {
-        if (!dish.isReady()) {
-            dish.setReady(true);
+        if (dish.isReady) {
+            dish.setServed(true);
             OrderService.getInstance().updateOrder();
             OrderService.getInstance().removeFromWaiterList(dish);
             return true; // potrawa została oznaczona
