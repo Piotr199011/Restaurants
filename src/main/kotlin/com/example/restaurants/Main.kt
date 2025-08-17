@@ -33,6 +33,7 @@ fun clientFlow(scanner: Scanner, orderService: OrderService) {
     val table = reserveTable(scanner) ?: return
     val restaurants = Restaurants()
     val currentOrder = orderService.startNewOrder()
+    val excelWriter = ExcelWriter() // Tworzymy obiekt ExcelWriter
 
     while (true) {
         println("\nWybierz typ dania:")
@@ -94,11 +95,16 @@ fun clientFlow(scanner: Scanner, orderService: OrderService) {
     if (scanner.nextLine().equals("tak", ignoreCase = true)) {
         println("Zamówienie wysłane do kuchni.")
         orderService.updateOrder()
+
+        // TYLKO PO POTWIERDZENIU ZAPIS DO EXCELA
+        excelWriter.writeExcel("orders.xlsx", currentOrder.selectedDishes)
+        println("Zamówienie zapisane w pliku Excel.")
     } else {
         currentOrder.selectedDishes.clear()
         println("Zamówienie anulowane.")
     }
 }
+
 
 fun cookFlow(scanner: Scanner, orderService: OrderService) {
     println("\n=== TRYB KUCHARZA ===")
