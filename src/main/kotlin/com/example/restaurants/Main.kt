@@ -33,7 +33,7 @@ fun clientFlow(scanner: Scanner, orderService: OrderService) {
     val table = reserveTable(scanner) ?: return
     val restaurants = Restaurants()
     val currentOrder = orderService.startNewOrder()
-    val excelWriter = ExcelWriter() // Tworzymy obiekt ExcelWriter
+    val excelWriter = Writer() // Tworzymy obiekt ExcelWriter
 
     while (true) {
         println("\nWybierz typ dania:")

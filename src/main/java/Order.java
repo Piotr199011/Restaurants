@@ -1,11 +1,20 @@
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Order {
     private List<Dish> selectedDishes = new ArrayList<>();
-
     private int orderNumber;
 
+    private LocalDate orderDate;
+
+    public LocalDate getOrderDate() {
+        return orderDate;
+    }
+
+    public void setOrderDate(LocalDate orderDate) {
+        this.orderDate = LocalDate.now();
+    }
     public int getOrderNumber() {
         return orderNumber;
     }

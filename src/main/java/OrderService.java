@@ -1,3 +1,4 @@
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -27,6 +28,7 @@ public class OrderService {
 
     public Order startNewOrder() {
         Order order = new Order();
+        order.setOrderDate(LocalDate.now());
         order.setOrderNumber(lastOrderNumber);
         orders.add(order);
         notifyListeners(order);

@@ -47,7 +47,7 @@ public class LoginService {
         switch (role) {
             case "Waiter": return new Waiter(username);
             case "Cook": return new Cook(username);
-            case "Manager": return new Manager(username);
+            case "Manager": return new ManagerUser(username);
             default: return null; // tu i tak nie trafimy
         }
     }

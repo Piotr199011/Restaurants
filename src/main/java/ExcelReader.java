@@ -1,15 +1,63 @@
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import javax.xml.crypto.Data;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 public class ExcelReader {
+    public ArrayList<Manager> readExcelManager(String year, String month, String day) {
+        ArrayList<Manager> daneManager = new ArrayList<>();
+
+
+        String path = "src/main/resources/orders/" + year + "/" + month
+                + "/orders." + year + "-" + month + "-" + day + ".xlsx";
+
+        File file = new File(path);
+
+        if (!file.exists()) {
+            throw new IllegalArgumentException("Plik " + path + " nie został znaleziony!");
+        }
+
+        try (InputStream is = new FileInputStream(file)) {
+            Workbook workbook = new XSSFWorkbook(is);
+            Sheet sheet = workbook.getSheetAt(0);
+            System.out.println("Odczyt z arkusza: " + sheet.getSheetName());
+
+            boolean isFirstRow = true;
+            for (Row row : sheet) {
+                if (isFirstRow) {
+                    isFirstRow = false; // pomijamy nagłówek
+                    continue;
+                }
+
+                int data = row.getRowNum(); // zamiast getCell(0).getRowIndex()
+                String name = row.getCell(1).getStringCellValue();
+
+                Cell priceCell = row.getCell(2);
+                int price;
+                if (priceCell.getCellType() == CellType.NUMERIC) {
+                    price = (int) priceCell.getNumericCellValue();
+                } else {
+                    price = (int) Double.parseDouble(priceCell.getStringCellValue());
+                }
+
+                daneManager.add(new Manager(data, name, price));
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        return daneManager;
+    }
+
     public ArrayList<Dish> readExcel(String resourceName) {
         ArrayList<Dish> dishes = new ArrayList<>();
 
