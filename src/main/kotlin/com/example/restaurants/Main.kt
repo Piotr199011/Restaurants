@@ -12,7 +12,7 @@ fun main() {
         println("1. Klient")
         println("2. Kucharz")
         println("3. Kelner (ma też opcje klienta)")
-        println("4. Kierownik (w trakcie implementacji)")
+        println("4. Kierownik")
         println("0. Wyjście")
 
         when (scanner.nextLine().trim()) {

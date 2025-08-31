@@ -116,61 +116,54 @@ public class Writer {
             Path folderPath = Paths.get("src/main/resources/orders", year, month);
             Files.createDirectories(folderPath);
 
-            String fileName = (resourceName.endsWith(".xlsx") ?
-                    resourceName.replace(".xlsx", "") : resourceName)
+            String fileName = (resourceName.endsWith(".xlsx") ? resourceName.replace(".xlsx", "") : resourceName)
                     + "." + today + ".xlsx";
 
             Path filePath = folderPath.resolve(fileName);
             File file = filePath.toFile();
 
-            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            XSSFWorkbook workbook;
+            XSSFSheet sheet;
 
             if (file.exists()) {
-                try (FileInputStream is = new FileInputStream(file);
-                     FileOutputStream fos = new FileOutputStream(file)) {
-
-                    Workbook workbook = new XSSFWorkbook(is);
-                    Sheet sheet = workbook.getSheetAt(0);
-                    int rowIndex = sheet.getLastRowNum() + 1;
-
-                    for (Dish dish : selectedDishes) {
-                        XSSFRow rowNext = (XSSFRow) sheet.createRow(rowIndex++);
-                        rowNext.createCell(0).setCellValue(LocalDateTime.now().format(dtf));
-                        rowNext.createCell(1).setCellValue(dish.getNameDish());
-                        rowNext.createCell(2).setCellValue(dish.getPriceDish());
-                    }
-
-                    workbook.write(fos);
-                    workbook.close();
-                    System.out.println("Dane zapisane w istniejącym pliku: " + filePath);
+                try (FileInputStream fis = new FileInputStream(file)) {
+                    workbook = new XSSFWorkbook(fis);
                 }
+                sheet = workbook.getSheetAt(0);
             } else {
-                try (XSSFWorkbook workbook = new XSSFWorkbook();
-                     FileOutputStream fos = new FileOutputStream(file)) {
+                workbook = new XSSFWorkbook();
+                sheet = workbook.createSheet("Arkusz1");
 
-                    XSSFSheet sheet = workbook.createSheet("Arkusz1");
-                    String[] headers = {"Time", "Name Dish", "Price"};
-                    XSSFRow headerRow = sheet.createRow(0);
-                    for (int i = 0; i < headers.length; i++) {
-                        headerRow.createCell(i).setCellValue(headers[i]);
-                    }
-
-                    int rowIndex = 1;
-                    for (Dish dish : selectedDishes) {
-                        XSSFRow rowNext = sheet.createRow(rowIndex++);
-                        rowNext.createCell(0).setCellValue(LocalDateTime.now().format(dtf));
-                        rowNext.createCell(1).setCellValue(dish.getNameDish());
-                        rowNext.createCell(2).setCellValue(dish.getPriceDish());
-                    }
-
-                    workbook.write(fos);
-                    workbook.close();
-                    System.out.println("Nowy plik Excel utworzony: " + filePath);
+                // Nagłówki dla nowego pliku
+                String[] headers = {"Time", "Name Dish", "Price"};
+                XSSFRow headerRow = sheet.createRow(0);
+                for (int i = 0; i < headers.length; i++) {
+                    headerRow.createCell(i).setCellValue(headers[i]);
                 }
             }
+
+            // Dopisanie nowych wierszy
+            int rowIndex = sheet.getLastRowNum() + 1;
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            for (Dish dish : selectedDishes) {
+                XSSFRow rowNext = sheet.createRow(rowIndex++);
+                rowNext.createCell(0).setCellValue(LocalDateTime.now().format(dtf));
+                rowNext.createCell(1).setCellValue(dish.getNameDish());
+                rowNext.createCell(2).setCellValue(dish.getPriceDish());
+            }
+
+            // Zapis do pliku
+            try (FileOutputStream fos = new FileOutputStream(file)) {
+                workbook.write(fos);
+            }
+            workbook.close();
+
+            System.out.println("Dane zapisane w pliku Excel: " + filePath);
 
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
+
 }
