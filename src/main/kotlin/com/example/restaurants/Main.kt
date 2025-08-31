@@ -1,9 +1,10 @@
-import java.util.Scanner
+import java.time.LocalDate
+import java.util.*
 
 fun main() {
     val scanner = Scanner(System.`in`)
     val orderService = OrderService.getInstance()
-
+    val writer = Writer()
     var running = true
     while (running) {
         println("\n=== MENU GŁÓWNE ===")
@@ -18,7 +19,7 @@ fun main() {
             "1" -> clientFlow(scanner, orderService)
             "2" -> cookFlow(scanner, orderService)
             "3" -> waiterFlow(scanner, orderService)
-            "4" -> println("Funkcje kierownika są w trakcie implementacji.")
+            "4" -> managerFlow(scanner, ReportService(ExcelReader()), Writer())
             "0" -> {
                 println("Do widzenia!")
                 running = false
@@ -108,8 +109,10 @@ fun clientFlow(scanner: Scanner, orderService: OrderService) {
 
 fun cookFlow(scanner: Scanner, orderService: OrderService) {
     println("\n=== TRYB KUCHARZA ===")
-    print("Login: "); val username = scanner.nextLine().trim()
-    print("Hasło: "); val password = scanner.nextLine().trim()
+    print("Login: ");
+    val username = scanner.nextLine().trim()
+    print("Hasło: ");
+    val password = scanner.nextLine().trim()
 
     val user = LoginService.getInstance().authenticate("Cook", username, password)
     if (user == null) {
@@ -165,8 +168,10 @@ fun cookFlow(scanner: Scanner, orderService: OrderService) {
 
 fun waiterFlow(scanner: Scanner, orderService: OrderService) {
     println("\n=== TRYB KELNERA ===")
-    print("Login: "); val username = scanner.nextLine().trim()
-    print("Hasło: "); val password = scanner.nextLine().trim()
+    print("Login: ");
+    val username = scanner.nextLine().trim()
+    print("Hasło: ");
+    val password = scanner.nextLine().trim()
 
     val user = LoginService.getInstance().authenticate("Waiter", username, password)
     if (user == null) {
@@ -191,7 +196,12 @@ fun waiterFlow(scanner: Scanner, orderService: OrderService) {
                 else orders.forEach { order ->
                     println("\nZamówienie #${order.orderNumber}:")
                     order.selectedDishes.forEach { dish ->
-                        println("${dish.id}: ${dish.nameDish} - ${if (dish.isReady()) "gotowe" else "w trakcie"}")
+                        println(
+                            "${dish.id}: ${dish.nameDish} - ${
+                                if
+                                        (dish.isReady()) "gotowe" else "w trakcie"
+                            }"
+                        )
                     }
                 }
             }
@@ -219,6 +229,77 @@ fun waiterFlow(scanner: Scanner, orderService: OrderService) {
             "3" -> clientFlow(scanner, orderService)
             "0" -> inMenu = false
             else -> println("Nieznana opcja.")
+        }
+    }
+}
+
+fun managerFlow(scanner: Scanner, reportService: ReportService, writer: Writer) {
+    while (true) {
+        println("\n=== TRYB KIEROWNIKA ===")
+        println("Wybierz typ raportu:")
+        println("1 - Dzienny")
+        println("2 - Miesięczny")
+        println("3 - Roczny")
+        println("0 - Powrót")
+
+        when (scanner.nextLine()) {
+            "1" -> { // Raport dzienny
+                print("Podaj datę (RRRR-MM-DD): ")
+                val date = LocalDate.parse(scanner.nextLine())
+                val report = reportService.generateDailyReport(
+                    date.year.toString(),
+                    String.format("%02d", date.monthValue),
+                    String.format("%02d", date.dayOfMonth)
+                )
+                // reportService.printReport(report, "Raport dzienny ${date}")
+                writer.writeReportToPdf(
+                    report,
+                    "daily_dish_report_${date}.pdf",
+                    "Raport dzienny ${date}",
+                    date.year,
+                    date.monthValue,
+                    date.dayOfMonth
+                )
+            }
+
+            "2" -> { // Raport miesięczny
+                print("Podaj miesiąc (RRRR-MM): ")
+                val ymInput = scanner.nextLine().split("-")
+                val year = ymInput[0].toInt()
+                val month = ymInput[1].toInt()
+                val report = reportService.generateMonthlyReport(
+                    year.toString(),
+                    String.format("%02d", month)
+                )
+                //reportService.printReport(report, "Raport miesięczny ${year}-${String.format("%02d", month)}")
+                writer.writeReportToPdf(
+                    report,
+                    "monthly_dish_report_${year}-${String.format("%02d", month)}.pdf",
+                    "Raport miesięczny ${year}-${String.format("%02d", month)}",
+                    year,
+                    month,
+                    null
+                )
+            }
+
+            "3" -> { // Raport roczny
+                print("Podaj rok (RRRR): ")
+                val year = scanner.nextLine().toInt()
+                val report = reportService.generateYearlyReport(year.toString())
+
+                //    reportService.printReport(report, "Raport roczny ${year}")
+                writer.writeReportToPdf(
+                    report,
+                    "yearly_dish_report_${year}.pdf",
+                    "Raport roczny ${year}",
+                    year,
+                    0,
+                    null
+                )
+            }
+
+            "0" -> return
+            else -> println("Niepoprawna opcja, spróbuj ponownie.")
         }
     }
 }

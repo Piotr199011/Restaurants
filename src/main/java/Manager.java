@@ -1,20 +1,30 @@
 public class Manager {
 
-    private int data;
+    private String data;
     private String name;
     private int price;
 
-
-    public Manager(int data, String name, int price) {
+    private int quantity;
+    public Manager(String data, String name, int price,int quantity) {
         this.data = data;
         this.name = name;
         this.price = price;
+        this.quantity=quantity;
     }
-    public int getData() {
+
+    public int getQuantity() {
+        return quantity;
+    }
+
+    public void setQuantity(int quantity) {
+        this.quantity = quantity;
+    }
+
+    public String getData() {
         return data;
     }
 
-    public void setData(int data) {
+    public void setData(String data) {
         this.data = data;
     }
 

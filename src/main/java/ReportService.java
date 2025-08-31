@@ -1,182 +1,94 @@
-import java.time.LocalDate;
-import java.time.Month;
-import java.time.Year;
+import java.io.File;
 import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class ReportService {
-    private static ReportService instance;
 
-    private ReportService() {
+    private ExcelReader excelReader;
+
+    public ReportService(ExcelReader excelReader) {
+        this.excelReader = excelReader;
     }
 
-    public static ReportService getInstance() {
-        if (instance == null) {
-            instance = new ReportService();
+    // ================= RAPORT DZIENNY =================
+    public Map<String, int[]> generateDailyReport(String year, String month, String day) {
+        ArrayList<Manager> orders = excelReader.readExcelManager(year, month, day);
+        if (orders == null) return new HashMap<>();
+        return generateReportFromOrders(orders);
+    }
+
+    // ================= RAPORT MIESIĘCZNY =================
+    public Map<String, int[]> generateMonthlyReport(String year, String month) {
+        Map<String, int[]> report = new HashMap<>();
+        YearMonth yearMonth = YearMonth.of(Integer.parseInt(year), Integer.parseInt(month));
+        int daysInMonth = yearMonth.lengthOfMonth();
+
+        for (int day = 1; day <= daysInMonth; day++) {
+            String dayStr = String.format("%02d", day);
+            File file = new File("src/main/resources/orders/" + year
+                    + "/" + month + "/orders." + year + "-" + month + "-" + dayStr + ".xlsx");
+            if (!file.exists()) continue; // pomijamy brakujące pliki
+
+            ArrayList<Manager> orders = excelReader.readExcelManager(year, month, dayStr);
+            if (orders != null)
+                mergeReport(report, generateReportFromOrders(orders));
         }
-        return instance;
+        return report;
     }
 
-    public double calculateDailyIncome() {
-        List<Order> allOrders = OrderService.getInstance().getOrders();
-        double sum = 0;
-        for (Order order : allOrders) {
-            order.getOrderDate();
-            if (order.getOrderDate().equals(LocalDate.now())) {
-                sum += order.totalPrice();
+    // ================= RAPORT ROCZNY =================
+    public Map<String, int[]> generateYearlyReport(String year) {
+        Map<String, int[]> report = new HashMap<>();
+        for (int month = 1; month <= 12; month++) {
+            String monthStr = String.format("%02d", month);
+            Map<String, int[]> monthlyReport = generateMonthlyReport(year, monthStr);
+            mergeReport(report, monthlyReport);
+        }
+        return report;
+    }
+
+    // ================= GENEROWANIE RAPORTU Z LISTY ZAMÓWIEŃ =================
+    private Map<String, int[]> generateReportFromOrders(ArrayList<Manager> orders) {
+        Map<String, int[]> report = new HashMap<>();
+        for (Manager m : orders) {
+            String dishName = m.getName();
+            int quantity = m.getQuantity();
+            int price = m.getPrice();
+            if (!report.containsKey(dishName)) {
+                report.put(dishName, new int[]{quantity, quantity * price});
+            } else {
+                int[] current = report.get(dishName);
+                current[0] += quantity;
+                current[1] += quantity * price;
             }
         }
-        return sum;
+        return report;
     }
 
-    public double calculateMonthlyIncome() {
-        List<Order> allOrders = OrderService.getInstance().getOrders();
-        double sum = 0;
-        LocalDate now = LocalDate.now();
-
-        for (Order order : allOrders) {
-            order.getOrderDate();
-            if (order.getOrderDate().getMonth().equals(now.getMonth()) &&
-                    order.getOrderDate().getYear() == now.getYear()) {
-                sum += order.totalPrice();
-
+    // ================= MERGOWANIE RAPORTÓW =================
+    private void mergeReport(Map<String, int[]> main, Map<String, int[]> toMerge) {
+        for (Map.Entry<String, int[]> entry : toMerge.entrySet()) {
+            String dish = entry.getKey();
+            int[] value = entry.getValue();
+            if (!main.containsKey(dish)) {
+                main.put(dish, value);
+            } else {
+                int[] current = main.get(dish);
+                current[0] += value[0];
+                current[1] += value[1];
             }
         }
-        return sum;
     }
 
-    public double calculateYearlyIncome() {
-        List<Order> allOrders = OrderService.getInstance().getOrders();
-        double sum = 0;
-        int date = LocalDate.now().getYear();
-        for (Order order : allOrders) {
-            order.getOrderDate();
-            if (order.getOrderDate().getYear() == date) {
-                sum += order.totalPrice();
-            }
+    // ================= WYŚWIETLANIE RAPORTU =================
+    public void printReport(Map<String, int[]> report, String title) {
+        System.out.println("=== " + title + " ===");
+        System.out.println("Danie\tIlość\tPrzychód");
+        for (Map.Entry<String, int[]> entry : report.entrySet()) {
+            System.out.println(entry.getKey() + "\t" + entry.getValue()[0] + "\t" + entry.getValue()[1]);
         }
-        return sum;
+        System.out.println();
     }
-
-    public Map<String, Integer> counterDailyReport() {
-        Map<String, Integer> dailyMap = new HashMap<>();
-        List<Order> allOrders = OrderService.getInstance().getOrders();
-        LocalDate today = LocalDate.now();
-
-        for (Order order : allOrders) {
-            if (order.getOrderDate() == null || !order.getOrderDate().equals(today)) continue;
-
-            for (Dish dish : order.getSelectedDishes()) {
-                String name = dish.getNameDish();
-                dailyMap.put(name, dailyMap.getOrDefault(name, 0) + 1);
-            }
-        }
-
-        return dailyMap;
-    }
-
-
-    public Map<String, Integer> selectedDailyReport(LocalDate localDate) {
-        Map<String, Integer> dailyMap = new HashMap<>();
-        List<Order> allOrders = OrderService.getInstance().getOrders();
-
-
-        for (Order order : allOrders) {
-            if (order.getOrderDate() == null || !order.getOrderDate().equals(localDate)) continue;
-
-            for (Dish dish : order.getSelectedDishes()) {
-                String name = dish.getNameDish();
-                dailyMap.put(name, dailyMap.getOrDefault(name, 0) + 1);
-            }
-        }
-
-        return dailyMap;
-    }
-
-
-
-    public Map<String, Integer> countMonthlyOrders() {
-        Map<String, Integer> monthlyMap = new HashMap<>();
-        List<Order> allOrders = OrderService.getInstance().getOrders();
-
-        YearMonth currentMonth = YearMonth.now();
-
-        for (Order order : allOrders) {
-            YearMonth orderMonth = YearMonth.from(order.getOrderDate());
-            if (!orderMonth.equals(currentMonth)) continue; // tylko bieżący miesiąc
-
-            List<Dish> dishes = order.getSelectedDishes();
-            if (dishes == null || dishes.isEmpty()) continue;
-
-            for (Dish dish : dishes) {
-                String name = dish.getNameDish();
-                monthlyMap.put(name, monthlyMap.getOrDefault(name, 0) + 1);
-            }
-        }
-
-        return monthlyMap;
-
-    }
-    public Map<String, Integer> selectedMonthlyOrders(YearMonth yearMonth) {
-        Map<String, Integer> monthlyMap = new HashMap<>();
-        List<Order> allOrders = OrderService.getInstance().getOrders();
-
-
-        for (Order order : allOrders) {
-            YearMonth orderMonth = YearMonth.from(order.getOrderDate());
-            if (!orderMonth.equals(yearMonth)) continue; // tylko bieżący miesiąc
-
-            List<Dish> dishes = order.getSelectedDishes();
-            if (dishes == null || dishes.isEmpty()) continue;
-
-            for (Dish dish : dishes) {
-                String name = dish.getNameDish();
-                monthlyMap.put(name, monthlyMap.getOrDefault(name, 0) + 1);
-            }
-        }
-
-        return monthlyMap;
-
-    }
-
-
-    public Map<String, Integer> getYearlyOrdersCount() {
-        Map<String, Integer> yearsMap = new HashMap<>();
-        List<Order> allOrders = OrderService.getInstance().getOrders();
-        Year currentYear = Year.now();
-
-        for (Order order : allOrders) {
-            Year orderYear = Year.from(order.getOrderDate());
-            if (!orderYear.equals(currentYear)) continue;
-
-            for (Dish dish : order.getSelectedDishes()) {
-                String name = dish.getNameDish();
-                yearsMap.put(name, yearsMap.getOrDefault(name, 0) + 1);
-            }
-        }
-
-        return yearsMap;
-    }
-    public Map<String, Integer> selectedYearlyOrdersCount(Year year) {
-
-
-        Map<String, Integer> yearsMap = new HashMap<>();
-        List<Order> allOrders = OrderService.getInstance().getOrders();
-
-
-        for (Order order : allOrders) {
-            Year orderYear = Year.from(order.getOrderDate());
-            if (!orderYear.equals(year)) continue;
-
-            for (Dish dish : order.getSelectedDishes()) {
-                String name = dish.getNameDish();
-                yearsMap.put(name, yearsMap.getOrDefault(name, 0) + 1);
-            }
-        }
-
-        return yearsMap;
-    }
-
 }

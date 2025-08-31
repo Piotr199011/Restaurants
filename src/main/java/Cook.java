@@ -10,7 +10,6 @@ public class Cook extends User implements OrderListener {
 
     @Override
     public void onOrderUpdated(Order order) {
-        // Zamiast od razu wypisywać – zwracamy dane w czytelnej formie
         System.out.println("\n[Cook] Aktualizacja zamówienia #" + order.getOrderNumber());
         List<String> dishStatuses = order.getSelectedDishes().stream()
                 .map(d -> d.getNameDish() + " - " + (d.isReady() ? "gotowe" : "w trakcie"))

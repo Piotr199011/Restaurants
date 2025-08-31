@@ -48,7 +48,7 @@ public class LoginService {
             case "Waiter": return new Waiter(username);
             case "Cook": return new Cook(username);
             case "Manager": return new ManagerUser(username);
-            default: return null; // tu i tak nie trafimy
+            default: return null;
         }
     }
 
