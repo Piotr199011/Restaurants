@@ -25,27 +25,67 @@ public class ReportService {
         YearMonth yearMonth = YearMonth.of(Integer.parseInt(year), Integer.parseInt(month));
         int daysInMonth = yearMonth.lengthOfMonth();
 
+        boolean anyFileFound = false;
+
         for (int day = 1; day <= daysInMonth; day++) {
             String dayStr = String.format("%02d", day);
             File file = new File("src/main/resources/orders/" + year
                     + "/" + month + "/orders." + year + "-" + month + "-" + dayStr + ".xlsx");
-            if (!file.exists()) continue; // pomijamy brakujące pliki
 
-            ArrayList<Manager> orders = excelReader.readExcelManager(year, month, dayStr);
-            if (orders != null)
+            if (!file.exists()) {
+                System.out.println("Brak pliku dla dnia: " + year + "-" + month + "-" + dayStr);
+                continue;
+            }
+
+            anyFileFound = true;
+            ArrayList<Manager> orders;
+            try {
+                orders = excelReader.readExcelManager(year, month, dayStr);
+            } catch (IllegalArgumentException e) {
+                System.out.println("Błąd przy odczycie pliku " +
+                        file.getName() + ": " + e.getMessage());
+                continue;
+            }
+
+            if (orders != null && !orders.isEmpty()) {
                 mergeReport(report, generateReportFromOrders(orders));
+            }
         }
+
+        if (!anyFileFound) {
+            throw new IllegalArgumentException("Brak plików dziennych w podanym miesiącu: "
+                    + year + "-" + month);
+        }
+
         return report;
     }
 
     // ================= RAPORT ROCZNY =================
     public Map<String, int[]> generateYearlyReport(String year) {
         Map<String, int[]> report = new HashMap<>();
+        boolean anyMonthFound = false;
+
         for (int month = 1; month <= 12; month++) {
             String monthStr = String.format("%02d", month);
-            Map<String, int[]> monthlyReport = generateMonthlyReport(year, monthStr);
-            mergeReport(report, monthlyReport);
+            Map<String, int[]> monthlyReport;
+
+            try {
+                monthlyReport = generateMonthlyReport(year, monthStr);
+            } catch (IllegalArgumentException e) {
+                System.out.println("Brak plików dla miesiąca: " + year + "-" + monthStr);
+                continue;
+            }
+
+            if (!monthlyReport.isEmpty()) {
+                anyMonthFound = true;
+                mergeReport(report, monthlyReport);
+            }
         }
+
+        if (!anyMonthFound) {
+            throw new IllegalArgumentException("Brak plików dziennych w całym roku: " + year);
+        }
+
         return report;
     }
 

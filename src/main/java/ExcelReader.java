@@ -5,7 +5,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -14,14 +16,20 @@ public class ExcelReader {
 
 
     public ArrayList<Manager> readExcelManager(String year, String month, String day) {
-        ArrayList<Manager> daneManager = new ArrayList<>();
-        String path = "src/main/resources/orders/" + year + "/" + month +
-                "/orders." + year + "-" + month + "-" + day + ".xlsx";
-
-        File file = new File(path);
-        if (!file.exists()) {
-            throw new IllegalArgumentException("Plik " + path + " nie został znaleziony!");
+        if(day.length()==1){
+            day="0"+day;
         }
+        if(month.length()==1){
+            month="0"+month;
+        }
+            ArrayList<Manager> daneManager = new ArrayList<>();
+            String path = "src/main/resources/orders/" + year + "/" + month +
+                    "/orders." + year + "-" + month + "-" + day + ".xlsx";
+
+            File file = new File(path);
+            if (!file.exists()) {
+                throw new IllegalArgumentException("Plik " + path + " nie został znaleziony!");
+            }
 
         try (InputStream is = new FileInputStream(file)) {
             Workbook workbook = new XSSFWorkbook(is);
@@ -38,9 +46,9 @@ public class ExcelReader {
                 //  kolumna 0 = data, kolumna 1 = nazwa dania, kolumna 2 = cena, kolumna 3 = ilość
                 String date = row.getCell(0).getStringCellValue();
                 String dishName = row.getCell(1).getStringCellValue();
-
                 Cell priceCell = row.getCell(2);
                 int price;
+
                 if (priceCell.getCellType() == CellType.NUMERIC) {
                     price = (int) priceCell.getNumericCellValue();
                 } else {
