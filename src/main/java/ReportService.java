@@ -1,8 +1,8 @@
 import java.io.File;
-import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.time.YearMonth;
 
 public class ReportService {
 
@@ -15,7 +15,9 @@ public class ReportService {
     // ================= RAPORT DZIENNY =================
     public Map<String, int[]> generateDailyReport(String year, String month, String day) {
         ArrayList<Manager> orders = excelReader.readExcelManager(year, month, day);
-        if (orders == null) return new HashMap<>();
+        if (orders == null || orders.isEmpty()) {
+            throw new IllegalArgumentException("Brak danych dla dnia: " + year + "-" + month + "-" + day);
+        }
         return generateReportFromOrders(orders);
     }
 
@@ -24,37 +26,23 @@ public class ReportService {
         Map<String, int[]> report = new HashMap<>();
         YearMonth yearMonth = YearMonth.of(Integer.parseInt(year), Integer.parseInt(month));
         int daysInMonth = yearMonth.lengthOfMonth();
-
-        boolean anyFileFound = false;
+        boolean anyDayFound = false;
 
         for (int day = 1; day <= daysInMonth; day++) {
             String dayStr = String.format("%02d", day);
             File file = new File("src/main/resources/orders/" + year
                     + "/" + month + "/orders." + year + "-" + month + "-" + dayStr + ".xlsx");
+            if (!file.exists()) continue;
 
-            if (!file.exists()) {
-                System.out.println("Brak pliku dla dnia: " + year + "-" + month + "-" + dayStr);
-                continue;
-            }
-
-            anyFileFound = true;
-            ArrayList<Manager> orders;
-            try {
-                orders = excelReader.readExcelManager(year, month, dayStr);
-            } catch (IllegalArgumentException e) {
-                System.out.println("Błąd przy odczycie pliku " +
-                        file.getName() + ": " + e.getMessage());
-                continue;
-            }
-
+            ArrayList<Manager> orders = excelReader.readExcelManager(year, month, dayStr);
             if (orders != null && !orders.isEmpty()) {
+                anyDayFound = true;
                 mergeReport(report, generateReportFromOrders(orders));
             }
         }
 
-        if (!anyFileFound) {
-            throw new IllegalArgumentException("Brak plików dziennych w podanym miesiącu: "
-                    + year + "-" + month);
+        if (!anyDayFound) {
+            throw new IllegalArgumentException("Brak danych dziennych w miesiącu: " + year + "-" + month);
         }
 
         return report;
@@ -67,23 +55,17 @@ public class ReportService {
 
         for (int month = 1; month <= 12; month++) {
             String monthStr = String.format("%02d", month);
-            Map<String, int[]> monthlyReport;
-
             try {
-                monthlyReport = generateMonthlyReport(year, monthStr);
-            } catch (IllegalArgumentException e) {
-                System.out.println("Brak plików dla miesiąca: " + year + "-" + monthStr);
-                continue;
-            }
-
-            if (!monthlyReport.isEmpty()) {
-                anyMonthFound = true;
+                Map<String, int[]> monthlyReport = generateMonthlyReport(year, monthStr);
                 mergeReport(report, monthlyReport);
+                anyMonthFound = true;
+            } catch (IllegalArgumentException e) {
+                // brak danych w danym miesiącu, pomijamy
             }
         }
 
         if (!anyMonthFound) {
-            throw new IllegalArgumentException("Brak plików dziennych w całym roku: " + year);
+            throw new IllegalArgumentException("Brak danych w roku: " + year);
         }
 
         return report;

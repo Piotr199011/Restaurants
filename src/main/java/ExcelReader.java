@@ -1,6 +1,5 @@
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -16,20 +15,25 @@ public class ExcelReader {
 
 
     public ArrayList<Manager> readExcelManager(String year, String month, String day) {
-        if(day.length()==1){
-            day="0"+day;
-        }
-        if(month.length()==1){
-            month="0"+month;
-        }
-            ArrayList<Manager> daneManager = new ArrayList<>();
-            String path = "src/main/resources/orders/" + year + "/" + month +
-                    "/orders." + year + "-" + month + "-" + day + ".xlsx";
 
-            File file = new File(path);
-            if (!file.exists()) {
-                throw new IllegalArgumentException("Plik " + path + " nie został znaleziony!");
-            }
+        int y = parseNumber(year, "roku");
+        int m = parseNumber(month, "miesiąca");
+        int d = parseNumber(day, "dnia");
+
+        if (day.length() == 1) {
+            day = "0" + day;
+        }
+        if (month.length() == 1) {
+            month = "0" + month;
+        }
+        ArrayList<Manager> daneManager = new ArrayList<>();
+        String path = "src/main/resources/orders/" + year + "/" + month +
+                "/orders." + year + "-" + month + "-" + day + ".xlsx";
+
+        File file = new File(path);
+        if (!file.exists()) {
+            throw new IllegalArgumentException("Plik " + path + " nie został znaleziony!");
+        }
 
         try (InputStream is = new FileInputStream(file)) {
             Workbook workbook = new XSSFWorkbook(is);
@@ -188,8 +192,16 @@ public class ExcelReader {
         }
     }
 
-}
 
+    private int parseNumber(String value, String fieldName) {
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Niepoprawny format " + fieldName + ": " + value);
+
+        }
+    }
+}
 
 //    public ArrayList<Dish> readExcel(String resourceName) {
 //        ArrayList<Dish> dishes = new ArrayList<>();

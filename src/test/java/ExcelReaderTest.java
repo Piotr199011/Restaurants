@@ -2,9 +2,8 @@
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-
-import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -12,27 +11,32 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ExcelReaderTest {
-    static Stream<String[]> provideDateFormats() {
+    static Stream<Arguments> provideDateFormats() {
         return Stream.of(
-                new String[]{"2025", "08", "07"},
-                new String[]{"2025", "8", "07"},
-                new String[]{"2025", "08", "7"},
-                new String[]{"2025", "8", "7"}
+                Arguments.of("2025", "09", "07",true),
+                Arguments.of("2025", "9", "07",true),
+                Arguments.of("2025", "09", "7",true),
+                Arguments.of("2025", "9", "7",true),
+                Arguments.of("2025", "O9", "O7",false),
+                Arguments.of("07", "09", "2025",false)
+
         );
     }
 
     @ParameterizedTest
     @MethodSource("provideDateFormats")
-    void testReadExcelManager_variousDateFormats(String[] dateParts) {
-        String year = dateParts[0];
-        String month = dateParts[1];
-        String day = dateParts[2];
-
+    void testReadExcelManager_variousDateFormats(String year, String month, String day,boolean expectedValid) {
         ExcelReader reader = new ExcelReader();
-        var managers = reader.readExcelManager(year, month, day);
+        if (expectedValid) {
+            var managers = reader.readExcelManager(year, month, day);
 
-        assertFalse(managers.isEmpty(),
-                "Nie odczytano danych dla: " + year + "-" + month + "-" + day);
+            assertFalse(managers.isEmpty(),
+                    "Nie odczytano danych dla: " + year + "-" + month + "-" + day);
+        }else {
+            assertThrows(IllegalArgumentException.class,
+                    () -> reader.readExcelManager(year, month, day),
+                    "Oczekiwano wyj¹tku dla: " + year + "-" + month + "-" + day);
+        }
     }
     @Test
     void testReadExcelManager_dateNoExist() {
@@ -55,6 +59,47 @@ class ExcelReaderTest {
 
 
     }
+
+        static Stream<Arguments> checkIdFormat() {
+            return Stream.of(
+                    Arguments.of("1", true),
+                    Arguments.of("3", true),
+                    Arguments.of("7", true),
+                    Arguments.of("0", false),
+                    Arguments.of("8", false),
+                    Arguments.of("15", false),
+                    Arguments.of("O", false),  
+                    Arguments.of("a", false)
+            );
+        }
+
+        @ParameterizedTest
+        @MethodSource("checkIdFormat")
+        void testReadExcelMenu_variousIdFormats(String idInput, boolean expectedValid) {
+            ExcelReader reader = new ExcelReader();
+
+            if (expectedValid) {
+                ArrayList<Dish> menu = reader.readExcel("menu_pl_obiad.xlsx");
+                int id = Integer.parseInt(idInput);
+                assertFalse(menu.isEmpty(), "Menu nie powinno byæ puste");
+                boolean found = false;
+                for (Dish d : menu) {
+                    if (d.getId() == id) {
+                        found = true;
+                        break;
+                    }
+                }
+                assertTrue(found, "Nie znaleziono dania o poprawnym ID: " + id);
+            } else {
+                // Sprawdzenie, ¿e niepoprawny input wyrzuca wyj¹tek
+                assertThrows(IllegalArgumentException.class, () -> {
+                    int id = Integer.parseInt(idInput);
+                    if (id < 1 || id > 7) throw new IllegalArgumentException("Niepoprawne ID: " + id);
+                });
+            }
+        }
+
+
 
     @Test
     void testReadMenu() {
