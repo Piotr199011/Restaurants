@@ -83,20 +83,18 @@ public class ExcelReader {
         ArrayList<Dish> dishes = new ArrayList<>();
         try (InputStream is = getClass().getClassLoader().getResourceAsStream(resourceName)) {
             if (is == null) {
-                throw new IllegalArgumentException("Plik " + resourceName +
-                        " nie został znaleziony w resources!");
+                throw new IllegalArgumentException("Plik " + resourceName + " nie został znaleziony w resources!");
             }
 
             Workbook workbook = new XSSFWorkbook(is);
             Sheet sheet = workbook.getSheetAt(0);
-            System.out.println("Odczyt z arkusza: " + sheet.getSheetName());
-
             boolean isFirstRow = true;
             int counter = 1;
+
             for (Row row : sheet) {
                 if (isFirstRow) {
                     isFirstRow = false;
-                    continue;
+                    continue; // pomijamy nagłówek
                 }
 
                 int id = row.getCell(0).getRowIndex();
@@ -105,10 +103,29 @@ public class ExcelReader {
 
                 Cell priceCell = row.getCell(3);
                 int price;
-                if (priceCell.getCellType() == CellType.NUMERIC) {
-                    price = (int) priceCell.getNumericCellValue();
-                } else {
-                    price = (int) Double.parseDouble(priceCell.getStringCellValue());
+
+                if (priceCell == null) {
+                    throw new IllegalArgumentException(
+                            "Błędny format ceny w pliku Excel (wiersz " + row.getRowNum() + "): null");
+                }
+
+                switch (priceCell.getCellType()) {
+                    case NUMERIC:
+                        price = (int) priceCell.getNumericCellValue();
+                        break;
+                    case STRING:
+                        try {
+                            price = (int) Double.parseDouble(priceCell.getStringCellValue());
+                        } catch (NumberFormatException e) {
+                            throw new IllegalArgumentException(
+                                    "Błędny format ceny w pliku Excel (wiersz " + row.getRowNum() + "): "
+                                            + priceCell.getStringCellValue(), e);
+                        }
+                        break;
+                    default:
+                        throw new IllegalArgumentException(
+                                "Błędny format ceny w pliku z menu w Excel (wiersz " + row.getRowNum() + "): "
+                                        + priceCell.toString());
                 }
 
                 boolean isReady = false;
@@ -116,11 +133,13 @@ public class ExcelReader {
                 counter++;
             }
 
-        } catch (Exception e) {
-            System.err.println("Błąd podczas odczytu pliku Excel: " + e.getMessage());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
+
         return dishes;
     }
+
 
     // Odczyt wszystkich plików w katalogu i podkatalogach
     public void readAllExcelFilesRecursively(String directoryPath) {
